@@ -63,7 +63,7 @@ protected:
 
 // for the subclass of CCScene, each has to implement the static "node" method 
 #define SCENE_NODE_FUNC(scene) \
-static scene* node() \
+static scene* scene() \
 { \
 	scene *pRet = new scene(); \
 	if (pRet && pRet->init()) \
@@ -80,7 +80,7 @@ static scene* node() \
 }; 
 
 #define SCENE_FUNC_PARAM(__TYPE__,__PARAMTYPE__,__PARAM__) \
-	static cocos2d::CCScene* node(__PARAMTYPE__ __PARAM__) \
+	static cocos2d::CCScene* scene(__PARAMTYPE__ __PARAM__) \
 { \
 	cocos2d::CCScene * scene = NULL; \
 	do  \
