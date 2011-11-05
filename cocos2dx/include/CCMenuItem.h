@@ -259,8 +259,18 @@ namespace cocos2d{
 		static CCMenuItemImage* itemFromNormalImage(const char *normalImage, const char *selectedImage, SelectorProtocol* target, SEL_MenuHandler selector);
 		/** creates a menu item with a normal,selected  and disabled image with target/selector */
 		static CCMenuItemImage* itemFromNormalImage(const char *normalImage, const char *selectedImage, const char *disabledImage, SelectorProtocol* target, SEL_MenuHandler selector);
+		/** creates a menu item with a normal and selected sprite frame*/
+		static CCMenuItemImage* itemFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage);
+		/** creates a menu item with a normal,selected  and disabled sprite frame*/
+		static CCMenuItemImage* itemFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage, const char *disabledImage);
+		/** creates a menu item with a normal and selected sprite frame with target/selector */
+		static CCMenuItemImage* itemFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage, SelectorProtocol* target, SEL_MenuHandler selector);
+		/** creates a menu item with a normal,selected  and disabled sprite frame with target/selector */
+		static CCMenuItemImage* itemFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage, const char *disabledImage, SelectorProtocol* target, SEL_MenuHandler selector);
 		/** initializes a menu item with a normal, selected  and disabled image with target/selector */
 		bool initFromNormalImage(const char *normalImage, const char *selectedImage, const char *disabledImage, SelectorProtocol* target, SEL_MenuHandler selector);
+		/** initializes a menu item with a normal, selected  and disabled sprite frame with target/selector */
+		bool initFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage, const char *disabledImage, SelectorProtocol* target, SEL_MenuHandler selector);
 	};
 
 	/** @brief A CCMenuItemToggle

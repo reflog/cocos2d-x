@@ -624,6 +624,57 @@ namespace cocos2d{
 		}
 		return initFromNormalSprite(normalSprite, selectedSprite, disabledSprite, target, selector);
 	}
+
+
+	CCMenuItemImage * CCMenuItemImage::itemFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage)
+	{
+		return CCMenuItemImage::itemFromNormalSpriteFrameName(normalImage, selectedImage, NULL, NULL, NULL);
+	}
+	CCMenuItemImage * CCMenuItemImage::itemFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage, SelectorProtocol* target, SEL_MenuHandler selector)
+	{
+		return CCMenuItemImage::itemFromNormalSpriteFrameName(normalImage, selectedImage, NULL, target, selector);
+	}
+	CCMenuItemImage * CCMenuItemImage::itemFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage, const char *disabledImage, SelectorProtocol* target, SEL_MenuHandler selector)
+	{
+		CCMenuItemImage *pRet = new CCMenuItemImage();
+		if (pRet && pRet->initFromNormalSpriteFrameName(normalImage, selectedImage, disabledImage, target, selector))
+		{
+			pRet->autorelease();
+			return pRet;
+		}
+		CC_SAFE_DELETE(pRet);
+		return NULL;
+	}
+	CCMenuItemImage * CCMenuItemImage::itemFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage, const char *disabledImage)
+	{
+		CCMenuItemImage *pRet = new CCMenuItemImage();
+		if (pRet && pRet->initFromNormalSpriteFrameName(normalImage, selectedImage, disabledImage, NULL, NULL))
+		{
+			pRet->autorelease();
+			return pRet;
+		}
+		CC_SAFE_DELETE(pRet);
+		return NULL;
+	}
+	bool CCMenuItemImage::initFromNormalSpriteFrameName(const char *normalImage, const char *selectedImage, const char *disabledImage, SelectorProtocol* target, SEL_MenuHandler selector)
+	{
+		CCNode *normalSprite = CCSprite::spriteWithSpriteFrameName(normalImage);
+		CCNode *selectedSprite = NULL;
+		CCNode *disabledSprite = NULL;
+
+		if (selectedImage)
+		{
+			selectedSprite = CCSprite::spriteWithSpriteFrameName(selectedImage);
+		}
+
+		if(disabledImage)
+		{
+			disabledSprite = CCSprite::spriteWithSpriteFrameName(disabledImage);
+		}
+		return initFromNormalSprite(normalSprite, selectedSprite, disabledSprite, target, selector);
+	}
+
+
 	//
 	// MenuItemToggle
 	//
