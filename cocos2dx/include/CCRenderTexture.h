@@ -28,6 +28,7 @@ THE SOFTWARE.
 #include "CCData.h"
 #include "CCNode.h"
 #include "CCSprite.h"
+#include <list>
 
 namespace cocos2d {
 
@@ -78,45 +79,35 @@ public:
     /** end is key word of lua, use other name to export to lua. */
 	inline void endToLua(){ end();};
 
-	/** ends grabbing*/
-	// para bIsTOCacheTexture       the parameter is only used for android to cache the texture
-	void end(bool bIsTOCacheTexture = true);
+	/** ends grabbing */
+    void end();
 
     /** clears the texture with a color */
     void clear(float r, float g, float b, float a);
 
 	/** saves the texture into a file */
-	// para szFilePath      the absolute path to save
-	// para x,y         the lower left corner coordinates of the buffer to save
-	// pare nWidth,nHeight    the size of the buffer to save
-	//                        when nWidth = 0 and nHeight = 0, the image size to save equals to buffer texture size
-	bool saveBuffer(const char *szFilePath, int x = 0, int y = 0, int nWidth = 0, int nHeight = 0);
-
-	/** saves the texture into a file. put format at the first argument, or ti will be overloaded with
-	 * saveBuffer(const char *szFilePath, int x = 0, int y = 0, int nWidth = 0, int nHeight = 0) */
-	// para name        the file name to save
-	// para format      the image format to save, here it supports kCCImageFormatPNG and kCCImageFormatJPG */
-	// para x,y         the lower left corner coordinates of the buffer to save
-	// pare nWidth,nHeight    the size of the buffer to save
-	//                        when nWidth = 0 and nHeight = 0, the image size to save equals to buffer texture size
-	bool saveBuffer(int format, const char *name, int x = 0, int y = 0, int nWidth = 0, int nHeight = 0);
+	bool saveBuffer(const char *name);
+	/** saves the texture into a file. The format can be JPG or PNG */
+	bool saveBuffer(const char *name, int format);
 
     /* get buffer as UIImage, can only save a render buffer which has a RGBA8888 pixel format */
     CCData *getUIImageAsDataFromBuffer(int format);
 
-	/** save the buffer data to a CCImage */
-	// para pImage      the CCImage to save
-	// para x,y         the lower left corner coordinates of the buffer to save
-	// pare nWidth,nHeight    the size of the buffer to save
-	//                        when nWidth = 0 and nHeight = 0, the image size to save equals to buffer texture size
-	bool getUIImageFromBuffer(CCImage *pImage, int x = 0, int y = 0, int nWidth = 0, int nHeight = 0);
-
+	bool getUIImageFromBuffer(CCImage *pImage);
+	static void reinitAllCachedTextures();
 protected:
 	GLuint				m_uFBO;
 	GLint				m_nOldFBO;
-	CCTexture2D			*m_pTexture;
-	CCImage				*m_pUITextureImage;
-    GLenum				m_ePixelFormat;
+	CCTexture2D*		m_pTexture;
+
+    GLenum              m_ePixelFormat;
+private:
+	static list<CCRenderTexture*> cache_;
+	static void addToCache(CCRenderTexture * texture);
+	static void removeFromCache(CCRenderTexture * texture);
+	int _w;
+	int _h;
+	CCTexture2DPixelFormat _format;
 };
 
 } // namespace cocos2d
