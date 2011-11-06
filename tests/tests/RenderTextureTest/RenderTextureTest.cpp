@@ -196,7 +196,7 @@ void RenderTextureTest::ccTouchesMoved(CCSet* touches, CCEvent* event)
         }
     }
     // finish drawing and return context back to the screen
-    m_target->end(false);
+    m_target->end();
 }
 
 void RenderTextureTest::ccTouchesEnded(CCSet* touches, CCEvent* event)
@@ -280,7 +280,7 @@ void RenderTextureSave::saveImage(cocos2d::CCObject *pSender)
 
 	char str[20];
 	sprintf(str, "image-%d.png", counter);
-	m_pTarget->saveBuffer(kCCImageFormatPNG, str);
+	m_pTarget->saveBuffer(str,kCCImageFormatPNG);
 	CCLOG("Image saved %s", str);
 
 	counter++;
