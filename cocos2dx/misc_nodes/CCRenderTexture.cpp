@@ -29,11 +29,15 @@ THE SOFTWARE.
 #include "platform/platform.h"
 #include "CCImage.h"
 #include "support/ccUtils.h"
-#include "CCTextureCache.h"
 #include "CCFileUtils.h"
 #include "CCGL.h"
+#include <algorithm>
+
+
 
 namespace cocos2d { 
+
+std::list<CCRenderTexture*> CCRenderTexture::cache_;
 
 // implementation CCRenderTexture
 CCRenderTexture::CCRenderTexture()
@@ -41,17 +45,15 @@ CCRenderTexture::CCRenderTexture()
 , m_uFBO(0)
 , m_nOldFBO(0)
 , m_pTexture(0)
-, m_pUITextureImage(NULL)
 , m_ePixelFormat(kCCTexture2DPixelFormat_RGBA8888)
 {
 }
 
 CCRenderTexture::~CCRenderTexture()
 {
+	removeFromCache(this);
     removeAllChildrenWithCleanup(true);
     ccglDeleteFramebuffers(1, &m_uFBO);
-
-	CC_SAFE_DELETE(m_pUITextureImage);
 }
 
 CCSprite * CCRenderTexture::getSprite()
@@ -89,8 +91,12 @@ CCRenderTexture * CCRenderTexture::renderTextureWithWidthAndHeight(int w, int h)
 	return NULL;
 }
 
+
 bool CCRenderTexture::initWithWidthAndHeight(int w, int h, CCTexture2DPixelFormat eFormat)
 {
+	_w = w;
+	_h = h;
+	_format = eFormat;
 	// If the gles version is lower than GLES_VER_1_0, 
 	// some extended gles functions can't be implemented, so return false directly.
 	if (CCConfiguration::sharedConfiguration()->getGlesVersion() <= GLES_VER_1_0)
@@ -104,7 +110,7 @@ bool CCRenderTexture::initWithWidthAndHeight(int w, int h, CCTexture2DPixelForma
         w *= (int)CC_CONTENT_SCALE_FACTOR();
         h *= (int)CC_CONTENT_SCALE_FACTOR();
 
-        glGetIntegerv(CC_GL_FRAMEBUFFER_BINDING, &m_nOldFBO);
+        glGetIntegerv(GL_FRAMEBUFFER_BINDING_OES, &m_nOldFBO);
 
         // textures must be power of two squared
         unsigned int powW = ccNextPOT(w);
@@ -151,6 +157,7 @@ bool CCRenderTexture::initWithWidthAndHeight(int w, int h, CCTexture2DPixelForma
 
         ccglBindFramebuffer(CC_GL_FRAMEBUFFER, m_nOldFBO);
         bRet = true;
+		addToCache(this);
     } while (0);
     return bRet;
     
@@ -161,7 +168,7 @@ void CCRenderTexture::begin()
 	// Save the current matrix
 	glPushMatrix();
 
-	const CCSize& texSize = m_pTexture->getContentSizeInPixels();
+	CCSize texSize = m_pTexture->getContentSizeInPixels();
 
 	// Calculate the adjustment ratios based on the old and new projections
 	CCSize size = CCDirector::sharedDirector()->getDisplaySizeInPixels();
@@ -204,35 +211,14 @@ void CCRenderTexture::beginWithClear(float r, float g, float b, float a)
 	glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);     
 }
 
-void CCRenderTexture::end(bool bIsTOCacheTexture)
+void CCRenderTexture::end()
 {
 	ccglBindFramebuffer(CC_GL_FRAMEBUFFER, m_nOldFBO);
 	// Restore the original matrix and viewport
 	glPopMatrix();
 	CCSize size = CCDirector::sharedDirector()->getDisplaySizeInPixels();
-	//	glViewport(0, 0, (GLsizei)size.width, (GLsizei)size.height);
-	CCDirector::sharedDirector()->getOpenGLView()->setViewPortInPoints(0, 0, size.width, size.height);
-
-#if CC_ENABLE_CACHE_TEXTTURE_DATA
-	if (bIsTOCacheTexture)
-	{
-		CC_SAFE_DELETE(m_pUITextureImage);
-
-		// to get the rendered texture data
-		const CCSize& s = m_pTexture->getContentSizeInPixels();
-		int tx = (int)s.width;
-		int ty = (int)s.height;
-		m_pUITextureImage = new CCImage;
-		if (true == getUIImageFromBuffer(m_pUITextureImage, 0, 0, tx, ty))
-		{
-			VolatileTexture::addDataTexture(m_pTexture, m_pUITextureImage->getData(), kTexture2DPixelFormat_RGBA8888, s);
-		} 
-		else
-		{
-			CCLOG("Cache rendertexture failed!");
-		}
-	}
-#endif
+//	glViewport(0, 0, (GLsizei)size.width, (GLsizei)size.height);
+    CCDirector::sharedDirector()->getOpenGLView()->setViewPortInPoints(0, 0, size.width, size.height);
 }
 
 void CCRenderTexture::clear(float r, float g, float b, float a)
@@ -241,29 +227,29 @@ void CCRenderTexture::clear(float r, float g, float b, float a)
 	this->end();
 }
 
-bool CCRenderTexture::saveBuffer(const char *szFilePath, int x, int y, int nWidth, int nHeight)
+bool CCRenderTexture::saveBuffer(const char *name)
 {
-	bool bRet = false;
-
-	CCImage *pImage = new CCImage();
-	if (pImage != NULL && getUIImageFromBuffer(pImage, x, y, nWidth, nHeight))
-	{
-		bRet = pImage->saveToFile(szFilePath);
-	}
-
-	CC_SAFE_DELETE(pImage);
-	return bRet;
+	return this->saveBuffer(name, kCCImageFormatJPG);
 }
-bool CCRenderTexture::saveBuffer(int format, const char *fileName, int x, int y, int nWidth, int nHeight)
+bool CCRenderTexture::saveBuffer(const char *fileName, int format)
 {
+
 	bool bRet = false;
 	CCAssert(format == kCCImageFormatJPG || format == kCCImageFormatPNG,
 			 "the image can only be saved as JPG or PNG format");
 
 	CCImage *pImage = new CCImage();
-	if (pImage != NULL && getUIImageFromBuffer(pImage, x, y, nWidth, nHeight))
+	if (pImage != NULL && getUIImageFromBuffer(pImage))
 	{
 		std::string fullpath = CCFileUtils::getWriteablePath() + fileName;
+		if (kCCImageFormatPNG == format)
+		{
+			fullpath += ".png";
+		}
+		else
+		{
+			fullpath += ".jpg";
+		}
 		
 		bRet = pImage->saveToFile(fullpath.c_str());
 	}
@@ -274,45 +260,12 @@ bool CCRenderTexture::saveBuffer(int format, const char *fileName, int x, int y,
 }
 
 /* get buffer as UIImage */
-bool CCRenderTexture::getUIImageFromBuffer(CCImage *pImage, int x, int y, int nWidth, int nHeight)
+bool CCRenderTexture::getUIImageFromBuffer(CCImage *pImage)
 {
-	if (NULL == pImage || NULL == m_pTexture)
+	if (NULL == pImage)
 	{
 		return false;
 	}
-
-	const CCSize& s = m_pTexture->getContentSizeInPixels();
-	int tx = (int)s.width;
-	int ty = (int)s.height;
-
-	if (x < 0 || x >= tx || y < 0 || y >= ty)
-	{
-		return false;
-	}
-
-	if (nWidth < 0 
-		|| nHeight < 0
-		|| (0 == nWidth && 0 != nHeight)
-		|| (0 == nHeight && 0 != nWidth))
-	{
-		return false;
-	}
-	
-	// to get the image size to save
-	//		if the saving image domain exeeds the buffer texture domain,
-	//		it should be cut
-	int nSavedBufferWidth = nWidth;
-	int nSavedBufferHeight = nHeight;
-	if (0 == nWidth)
-	{
-		nSavedBufferWidth = tx;
-	}
-	if (0 == nHeight)
-	{
-		nSavedBufferHeight = ty;
-	}
-	nSavedBufferWidth = x + nSavedBufferWidth > tx ? (tx - x): nSavedBufferWidth;
-	nSavedBufferHeight = y + nSavedBufferHeight > ty ? (ty - y): nSavedBufferHeight;
 
 	GLubyte *pBuffer = NULL;
 	GLubyte *pTempData = NULL;
@@ -322,38 +275,28 @@ bool CCRenderTexture::getUIImageFromBuffer(CCImage *pImage, int x, int y, int nW
 	{
 		CCAssert(m_ePixelFormat == kCCTexture2DPixelFormat_RGBA8888, "only RGBA8888 can be saved as image");
 
-		CC_BREAK_IF(! (pBuffer = new GLubyte[nSavedBufferWidth * nSavedBufferHeight * 4]));
+		CCSize s = m_pTexture->getContentSizeInPixels();
+		int tx = (int)s.width;
+		int ty = (int)s.height;
 
-		// On some machines, like Samsung i9000, Motorola Defy,
-		// the dimension need to be a power of 2
-		int nReadBufferWidth = 0;
-		int nReadBufferHeight = 0;
-		int nMaxTextureSize = 0;
-		glGetIntegerv(GL_MAX_TEXTURE_SIZE, &nMaxTextureSize);
-
-		nReadBufferWidth = ccNextPOT(tx);
-		nReadBufferHeight = ccNextPOT(ty);
-
-		CC_BREAK_IF(0 == nReadBufferWidth || 0 == nReadBufferHeight);
-		CC_BREAK_IF(nReadBufferWidth > nMaxTextureSize || nReadBufferHeight > nMaxTextureSize);
-
-		CC_BREAK_IF(! (pTempData = new GLubyte[nReadBufferWidth * nReadBufferHeight * 4]));
+		CC_BREAK_IF(! (pBuffer = new GLubyte[tx * ty * 4]));
+		CC_BREAK_IF(! (pTempData = new GLubyte[tx * ty * 4]));
 
 		this->begin();
 		glPixelStorei(GL_PACK_ALIGNMENT, 1);
-		glReadPixels(0,0,nReadBufferWidth,nReadBufferHeight,GL_RGBA,GL_UNSIGNED_BYTE, pTempData);
-		this->end(false);
+		glReadPixels(0,0,tx,ty,GL_RGBA,GL_UNSIGNED_BYTE, pBuffer);
+		this->end();
 
-		// to get the actual texture data 
 		// #640 the image read from rendertexture is upseted
-		for (int i = 0; i < nSavedBufferHeight; ++i)
+		int nRowBytes = tx * 4;
+		for (int i = 0; i < ty; ++i)
 		{
-			memcpy(&pBuffer[i * nSavedBufferWidth * 4], 
-				&pTempData[(y + nSavedBufferHeight - i - 1) * nReadBufferWidth * 4 + x * 4], 
-				nSavedBufferWidth * 4);
+			memcpy(&pTempData[(ty - 1 - i) * nRowBytes], 
+				&pBuffer[i * nRowBytes], 
+				nRowBytes);
 		}
 
-		bRet = pImage->initWithImageData(pBuffer, nSavedBufferWidth * nSavedBufferHeight * 4, CCImage::kFmtRawData, nSavedBufferWidth, nSavedBufferHeight, 8);
+		bRet = pImage->initWithImageData(pTempData, tx * ty * 4, CCImage::kFmtRawData, tx, ty, 8);
 	} while (0);
 
 	CC_SAFE_DELETE_ARRAY(pBuffer);
@@ -380,7 +323,7 @@ CCData * CCRenderTexture::getUIImageAsDataFromBuffer(int format)
 // 
 //         CCAssert(m_ePixelFormat == kCCTexture2DPixelFormat_RGBA8888, "only RGBA8888 can be saved as image");
 // 
-//         const CCSize& s = m_pTexture->getContentSizeInPixels();
+//         CCSize s = m_pTexture->getContentSizeInPixels();
 //         int tx = s.width;
 //         int ty = s.height;
 // 
@@ -449,5 +392,33 @@ CCData * CCRenderTexture::getUIImageAsDataFromBuffer(int format)
 //     CC_SAFE_DELETE_ARRAY(pPixels);
 	return pData;
 }
+
+
+void CCRenderTexture::addToCache(CCRenderTexture * texture) {
+	std::list<CCRenderTexture*>::iterator it = std::find(cache_.begin(),cache_.end(),texture);
+	if (it==cache_.end()) {
+		cache_.push_back(texture);
+	}
+}
+
+void CCRenderTexture::removeFromCache(CCRenderTexture * texture) {
+	std::list<CCRenderTexture*>::iterator it = std::find(cache_.begin(),cache_.end(),texture);
+	if (it!=cache_.end()) {
+		cache_.erase(it);
+	}
+}
+
+
+void CCRenderTexture::reinitAllCachedTextures() {
+	std::list<CCRenderTexture*>::iterator it ;
+	for (it=cache_.begin();it!=cache_.end();++it) {
+		CCRenderTexture * texture = *it;
+		ccglDeleteFramebuffers(1, &texture->m_uFBO);
+		texture->removeAllChildrenWithCleanup(true);
+		texture->initWithWidthAndHeight(texture->_w,texture->_h,texture->_format);
+		texture->clear(0,0,0,1);
+	}
+}
+
 
 } // namespace cocos2d
