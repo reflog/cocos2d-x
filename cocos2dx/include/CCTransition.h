@@ -97,10 +97,10 @@ public:
 	/** used by some transitions to hide the outter scene */
 	void hideOutShowIn(void);
 
+	void setNewScene(ccTime dt);
 protected:
 	virtual void sceneOrder();
 private:
-	void setNewScene(ccTime dt);
 
 };
 
