@@ -112,11 +112,13 @@ bool CCImage::initWithImageData(void * pData,
             bRet = _initWithPngData(pData, nDataLen);
             break;
         }
+#if CC_USE_LIBJPEG
         else if (kFmtJpg == eFmt)
         {
             bRet = _initWithJpgData(pData, nDataLen);
             break;
         }
+#endif
 		else if (kFmtRawData == eFmt)
 		{
 			bRet = _initWithRawData(pData, nDataLen, nWidth, nHeight, nBitsPerComponent);
@@ -126,6 +128,7 @@ bool CCImage::initWithImageData(void * pData,
     return bRet;
 }
 
+#if CC_USE_LIBJPEG
 bool CCImage::_initWithJpgData(void * data, int nSize)
 {
     /* these are standard libjpeg structures for reading(decompression) */
@@ -206,6 +209,7 @@ bool CCImage::_initWithJpgData(void * data, int nSize)
     CC_SAFE_DELETE_ARRAY(row_pointer[0]);
     return bRet;
 }
+#endif
 
 bool CCImage::_initWithPngData(void * pData, int nDatalen)
 {
@@ -352,10 +356,12 @@ bool CCImage::saveToFile(const char *pszFilePath, bool bIsToRGB)
 		{
 			CC_BREAK_IF(!_saveImageToPNG(pszFilePath, bIsToRGB));
 		}
+#if CC_USE_LIBJPEG
 		else if (std::string::npos != strLowerCasePath.find(".jpg"))
 		{
 			CC_BREAK_IF(!_saveImageToJPG(pszFilePath));
 		}
+#endif
 		else
 		{
 			break;
@@ -507,6 +513,8 @@ bool CCImage::_saveImageToPNG(const char * pszFilePath, bool bIsToRGB)
 	} while (0);
 	return bRet;
 }
+
+#if CC_USE_LIBJPEG
 bool CCImage::_saveImageToJPG(const char * pszFilePath)
 {
 	bool bRet = false;
@@ -583,7 +591,7 @@ bool CCImage::_saveImageToJPG(const char * pszFilePath)
 	} while (0);
 	return bRet;
 }
-
+#endif
 NS_CC_END;
 
 #endif // (CC_TARGET_PLATFORM != TARGET_OS_IPHONE)

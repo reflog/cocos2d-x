@@ -116,14 +116,16 @@ public:
     CC_SYNTHESIZE_READONLY(int,     m_nBitsPerComponent,   BitsPerComponent);
 
 protected:
+#if CC_USE_LIBJPEG
     bool _initWithJpgData(void *pData, int nDatalen);
+	bool _saveImageToJPG(const char *pszFilePath);
+#endif
     bool _initWithPngData(void *pData, int nDatalen);
 
 	// @warning kFmtRawData only support RGBA8888
 	bool _initWithRawData(void *pData, int nDatalen, int nWidth, int nHeight, int nBitsPerComponent);
 
 	bool _saveImageToPNG(const char *pszFilePath, bool bIsToRGB = true);
-	bool _saveImageToJPG(const char *pszFilePath);
 
     unsigned char *m_pData;
     bool m_bHasAlpha;

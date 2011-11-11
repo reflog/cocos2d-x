@@ -321,4 +321,10 @@ To enable set it to a value different than 0. Disabled by default.
 #define CC_IS_RETINA_DISPLAY_SUPPORTED 0
 #endif
 
+
+//Set to 1 to enable jpeg, requires library libjpeg
+#ifndef CC_USE_LIBJPEG
+#define CC_USE_LIBJPEG 0
+#endif 
+
 #endif // __CCCONFIG_H__
