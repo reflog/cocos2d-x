@@ -163,6 +163,80 @@ bool CCRenderTexture::initWithWidthAndHeight(int w, int h, CCTexture2DPixelForma
     
 }
 
+
+bool CCRenderTexture::reinitWithWidthAndHeight(int w, int h, CCTexture2DPixelFormat eFormat)
+{
+	_w = w;
+	_h = h;
+	_format = eFormat;
+	// If the gles version is lower than GLES_VER_1_0, 
+	// some extended gles functions can't be implemented, so return false directly.
+	if (CCConfiguration::sharedConfiguration()->getGlesVersion() <= GLES_VER_1_0)
+	{
+		return false;
+	}
+
+	bool bRet = false;
+	do 
+	{
+		w *= (int)CC_CONTENT_SCALE_FACTOR();
+		h *= (int)CC_CONTENT_SCALE_FACTOR();
+
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING_OES, &m_nOldFBO);
+
+		// textures must be power of two squared
+		unsigned int powW = ccNextPOT(w);
+		unsigned int powH = ccNextPOT(h);
+
+		void *data = malloc((int)(powW * powH * 4));
+		CC_BREAK_IF(! data);
+
+		memset(data, 0, (int)(powW * powH * 4));
+		m_ePixelFormat = eFormat;
+
+		//m_pTexture = new CCTexture2D();
+		CC_BREAK_IF(! m_pTexture);
+
+		m_pTexture->initWithData(data, (CCTexture2DPixelFormat)m_ePixelFormat, powW, powH, CCSizeMake((float)w, (float)h));
+		free( data );
+
+		// generate FBO
+		ccglGenFramebuffers(1, &m_uFBO);
+		ccglBindFramebuffer(CC_GL_FRAMEBUFFER, m_uFBO);
+
+		// associate texture with FBO
+		ccglFramebufferTexture2D(CC_GL_FRAMEBUFFER, CC_GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_pTexture->getName(), 0);
+
+		// check if it worked (probably worth doing :) )
+		GLuint status = ccglCheckFramebufferStatus(CC_GL_FRAMEBUFFER);
+		if (status != CC_GL_FRAMEBUFFER_COMPLETE)
+		{
+			CCAssert(0, "Render Texture : Could not attach texture to framebuffer");
+			CC_SAFE_DELETE(m_pTexture);
+			break;
+		}
+
+		m_pTexture->setAliasTexParameters();
+
+		//m_pSprite = CCSprite::spriteWithTexture(m_pTexture);
+		//m_pSprite->initWithTexture(m_pTexture);
+
+		//m_pTexture->release();
+		//m_pSprite->setScaleY(-1);
+		//this->addChild(m_pSprite);
+
+		ccBlendFunc tBlendFunc = {GL_ONE, GL_ONE_MINUS_SRC_ALPHA };
+		m_pSprite->setBlendFunc(tBlendFunc);
+
+		ccglBindFramebuffer(CC_GL_FRAMEBUFFER, m_nOldFBO);
+		bRet = true;
+		//addToCache(this);
+	} while (0);
+	return bRet;
+
+}
+
+
 void CCRenderTexture::begin()
 {
 	// Save the current matrix
@@ -413,9 +487,7 @@ void CCRenderTexture::reinitAllCachedTextures() {
 	std::list<CCRenderTexture*>::iterator it ;
 	for (it=cache_.begin();it!=cache_.end();++it) {
 		CCRenderTexture * texture = *it;
-		ccglDeleteFramebuffers(1, &texture->m_uFBO);
-		texture->removeAllChildrenWithCleanup(true);
-		texture->initWithWidthAndHeight(texture->_w,texture->_h,texture->_format);
+		texture->reinitWithWidthAndHeight(texture->_w,texture->_h,texture->_format);
 		texture->clear(0,0,0,1);
 	}
 }

@@ -68,6 +68,9 @@ public:
     /** initializes a RenderTexture object with width and height in Points and a pixel format, only RGB and RGBA formats are valid */
     bool initWithWidthAndHeight(int w, int h, CCTexture2DPixelFormat eFormat);
 
+	/** same as initWithWidthAndHeight, but does not creates new sprites,textures, and reuses old ones. */
+	bool reinitWithWidthAndHeight(int w, int h, CCTexture2DPixelFormat eFormat);
+
     /** starts grabbing */
 	void begin();
 
