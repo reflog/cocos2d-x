@@ -37,7 +37,9 @@ THE SOFTWARE.
 
 namespace cocos2d { 
 
-std::list<CCRenderTexture*> CCRenderTexture::cache_;
+#if CC_ENABLE_CACHE_TEXTTURE_DATA
+	std::list<CCRenderTexture*> CCRenderTexture::cache_;
+#endif
 
 // implementation CCRenderTexture
 CCRenderTexture::CCRenderTexture()
@@ -51,7 +53,9 @@ CCRenderTexture::CCRenderTexture()
 
 CCRenderTexture::~CCRenderTexture()
 {
+#if CC_ENABLE_CACHE_TEXTTURE_DATA
 	removeFromCache(this);
+#endif
     removeAllChildrenWithCleanup(true);
     ccglDeleteFramebuffers(1, &m_uFBO);
 }
@@ -157,7 +161,9 @@ bool CCRenderTexture::initWithWidthAndHeight(int w, int h, CCTexture2DPixelForma
 
         ccglBindFramebuffer(CC_GL_FRAMEBUFFER, m_nOldFBO);
         bRet = true;
+#if CC_ENABLE_CACHE_TEXTTURE_DATA
 		addToCache(this);
+#endif
     } while (0);
     return bRet;
     
@@ -467,6 +473,7 @@ CCData * CCRenderTexture::getUIImageAsDataFromBuffer(int format)
 	return pData;
 }
 
+#if CC_ENABLE_CACHE_TEXTTURE_DATA
 
 void CCRenderTexture::addToCache(CCRenderTexture * texture) {
 	std::list<CCRenderTexture*>::iterator it = std::find(cache_.begin(),cache_.end(),texture);
@@ -491,6 +498,6 @@ void CCRenderTexture::reinitAllCachedTextures() {
 		texture->clear(0,0,0,1);
 	}
 }
-
+#endif
 
 } // namespace cocos2d

@@ -97,7 +97,6 @@ public:
     CCData *getUIImageAsDataFromBuffer(int format);
 
 	bool getUIImageFromBuffer(CCImage *pImage);
-	static void reinitAllCachedTextures();
 protected:
 	GLuint				m_uFBO;
 	GLint				m_nOldFBO;
@@ -105,12 +104,17 @@ protected:
 
     GLenum              m_ePixelFormat;
 private:
-	static list<CCRenderTexture*> cache_;
-	static void addToCache(CCRenderTexture * texture);
-	static void removeFromCache(CCRenderTexture * texture);
 	int _w;
 	int _h;
 	CCTexture2DPixelFormat _format;
+#if CC_ENABLE_CACHE_TEXTTURE_DATA
+	static list<CCRenderTexture*> cache_;
+	static void addToCache(CCRenderTexture * texture);
+	static void removeFromCache(CCRenderTexture * texture);
+public:
+	static void reinitAllCachedTextures();
+#endif
+
 };
 
 } // namespace cocos2d
